@@ -1,0 +1,19 @@
+# 构建产物
+build/
+bin/
+.gocache/
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+
+# 后端内嵌的前端产物：仅保留 .keep 占位，构建时由 build.sh 复制
+cmd/server/dist/*
+!cmd/server/dist/.keep
+
+# 运行时数据（SQLite 库、上传文件、日志）
+data/
+
+# 编辑器/系统文件
+.DS_Store
+*.log

@@ -1,0 +1,26 @@
+# 数据采集系统启动配置
+#
+# 使用说明：
+# - 后端主配置入口，相对路径按本文件所在目录解析；
+# - paths.data_dir 定义所有运行时数据（SQLite 库、上传文件）的根目录；
+# - 临时覆盖可用环境变量：GOLOOK_CONFIG_FILE / GOLOOK_DATA_DIR / SERVER_PORT 等。
+
+server:
+  # 后端监听端口（与 go-pess 默认 8088 错开，避免同机部署冲突）
+  port: 8090
+
+paths:
+  # 运行时数据根目录（相对 config/ 解析，因此 ../data 落在项目根目录的 data/）
+  data_dir: ../data
+
+log:
+  # 日志级别：debug | info | warn | error，默认 info。
+  # 正常流水（周期采集、HTTP 访问日志）在 debug 级，默认不输出。
+  level: info
+
+storage:
+  history:
+    # 落盘窗口：整点前 N 分钟，设备按 id 取模错峰落盘
+    flush_window_minutes: 10
+    # 当日极值 dirty 的落盘周期（秒级）
+    extremum_flush_interval: 5s

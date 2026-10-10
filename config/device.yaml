@@ -1,0 +1,138 @@
+# 数据采集系统设备接入目录
+#
+# 串口端点和本地 6DI2DO 通道统一从这里加载；
+# 添加设备时按模板要求选择其中的端点（device_ref）。
+#
+# 本机（板载 12 口）串口映射，依据 pessd if_dev_1u_kernel_5_10_init（内核 5.10）：
+#   前 10 口为 RS485：COM1-COM8 使用 CH9344 USB 扩展口，COM9/COM10 使用板载 ttyS
+#   后 2 口为 RS232：COM11 -> /dev/ttyS9，COM12 -> /dev/ttyS7
+
+version: 1
+
+protocols:
+  rs485_rtu:
+    - label: COM1
+      value: /dev/ttyCH9344USB2
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM2
+      value: /dev/ttyCH9344USB1
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM3
+      value: /dev/ttyCH9344USB3
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM4
+      value: /dev/ttyCH9344USB0
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM5
+      value: /dev/ttyCH9344USB5
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM6
+      value: /dev/ttyCH9344USB4
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM7
+      value: /dev/ttyCH9344USB7
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM8
+      value: /dev/ttyCH9344USB6
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM9
+      value: /dev/ttyS1
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM10
+      value: /dev/ttyS0
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+  rs232_rtu:
+    - label: COM11
+      value: /dev/ttyS9
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+    - label: COM12
+      value: /dev/ttyS7
+      defaults:
+        baudrate: "9600"
+        data_bit: "8"
+        stop_bit: "1"
+        parity: "N"
+
+local_io:
+  di:
+    - label: DI1
+      value: /sys/class/gpio/gpio495/value
+
+    - label: DI2
+      value: /sys/class/gpio/gpio496/value
+
+    - label: DI3
+      value: /sys/class/gpio/gpio497/value
+
+    - label: DI4
+      value: /sys/class/gpio/gpio498/value
+
+    - label: DI5
+      value: /sys/class/gpio/gpio499/value
+
+    - label: DI6
+      value: /sys/class/gpio/gpio500/value
+
+  do:
+    - label: DO1
+      value: /sys/class/gpio/gpio503/value
+      default: false
+
+    - label: DO2
+      value: /sys/class/gpio/gpio504/value
+      default: false
