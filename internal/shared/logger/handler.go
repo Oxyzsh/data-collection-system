@@ -8,9 +8,9 @@ import (
 	"sync"
 )
 
-// go-pess 统一日志格式（保持改造前的时间戳与模块标签结构，仅新增级别字段）：
+// 统一日志格式（时间戳 + 模块标签 + 级别）：
 //
-//	2026/10/08 20:46:35 [INFO] [DB] 配置库初始化成功: /home/go-pess/data/backend/db/config.db
+//	2026/10/08 20:46:35 [INFO] [DB] 配置库初始化成功: /opt/data-collect/data/backend/db/config.db
 //
 // 并发说明：所有派生 handler（WithAttrs）共享同一个 lockedWriter，
 // 保证多 goroutine 输出不逐行交错。

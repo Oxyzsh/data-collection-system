@@ -1,6 +1,6 @@
 // Package devicecatalog 提供 device.yaml 生成的设备接入目录：
 // 查询可选串口/本地 IO 端点（List），以及把前端提交的 device_ref 解析成固定参数（Resolve）。
-// 裁剪自 go-pess 的 system/application/DeviceCatalogService，去掉对 system 模块的依赖。
+// 负责把 device.yaml 中的端点定义转成可选设备列表，并解析前端提交的 device_ref。
 package devicecatalog
 
 import (

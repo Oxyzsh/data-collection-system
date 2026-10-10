@@ -23,7 +23,7 @@ func reset(t *testing.T) {
 func fakeExecutable(t *testing.T, dir string) {
 	t.Helper()
 	original := executablePath
-	executablePath = func() (string, error) { return filepath.Join(dir, "go-pess"), nil }
+	executablePath = func() (string, error) { return filepath.Join(dir, "data-collect"), nil }
 	t.Cleanup(func() { executablePath = original })
 }
 

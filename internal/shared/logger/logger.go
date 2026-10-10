@@ -1,4 +1,4 @@
-// Package logger 提供 go-pess 的统一日志设施：级别过滤、统一格式渲染
+// Package logger 提供进程统一的日志设施：级别过滤、统一格式渲染
 // （保持改造前 `时间 [模块] 消息` 结构并新增 [LEVEL] 字段）、格式化包装。
 //
 // 以标准库 log/slog 为引擎；业务代码经本包 Debugf/Infof/Warnf/Errorf/Fatal

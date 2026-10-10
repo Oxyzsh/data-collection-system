@@ -6,7 +6,7 @@
 # - 临时覆盖可用环境变量：GOLOOK_CONFIG_FILE / GOLOOK_DATA_DIR / SERVER_PORT 等。
 
 server:
-  # 后端监听端口（与 go-pess 默认 8088 错开，避免同机部署冲突）
+  # 后端监听端口（默认 8090；同机存在其它服务时按需调整）
   port: 8090
 
 paths:

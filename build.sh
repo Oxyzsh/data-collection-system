@@ -22,7 +22,7 @@ LDFLAGS="-X data-collection-system/internal/shared/buildinfo.Version=${BUILD_VER
 
 copy_device_config() {
   # device.yaml 的固定查找位置是 <程序目录>/config/device.yaml，
-  # 因此构建后把示例配置复制到二进制旁边（与 go-pess 的发布方式一致）。
+  # 因此构建后把示例配置复制到二进制旁边（与发布包布局一致）。
   [ -f "${SCRIPT_DIR}/config/device.yaml" ] || {
     echo "缺少 config/device.yaml" >&2
     exit 1
