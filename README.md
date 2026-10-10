@@ -210,3 +210,7 @@ tail -f /var/log/data-collect/data-collect.out.log
 go test ./...            # 单元测试（其中 2 个 Modbus 用例需要本机回环端口监听权限）
 ./scripts/e2e_smoke.sh   # 端到端冒烟（需先启动服务）
 ```
+
+## License
+
+本项目采用 [MIT License](LICENSE)。
