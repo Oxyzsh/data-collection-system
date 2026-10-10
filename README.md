@@ -40,7 +40,7 @@
 ./build.sh local     # 当前平台（开发调试）
 ./build.sh x86       # linux/amd64
 ./build.sh arm64     # linux/arm64
-./build.sh package   # 两个架构 + supervisor 发布包（build/data-collect-*.tar.gz）
+./build.sh package   # 两个架构的发布包（build/data-collect-{x86,arm64}.tar.gz）
 
 # 从项目根目录启动（数据目录 data/，默认端口 8090）
 ./build/data-collect
@@ -156,46 +156,62 @@ cd frontend && npm install && npm run dev
 生产模式：`./build.sh` 会自动执行 `npm run build`，把产物复制到 `cmd/server/dist/` 并通过
 `//go:embed` 打进二进制 —— 部署时只需一个可执行文件，页面路径与接口同源。
 
-## 部署（supervisor）
+## 运行与部署
 
-发布包（`./build.sh package`）包含二进制、配置、supervisor 配置与安装脚本，目录约定：
+程序不绑定任何进程管理器：**一个二进制 + 一个 `config/` 目录**即可运行；日志输出到 stdout/stderr，
+自启动与保活交给部署环境（systemd、容器编排或手动 `nohup` 均可）。
+
+发布包（`./build.sh package`）内容：
 
 ```text
-/opt/data-collect/
-  data-collect               # 二进制
-  config/server.yaml         # 端口 / 数据目录
-  config/device.yaml         # 串口 / 本地 IO 端点
-  data/                      # 运行时数据（首次启动自动创建）
-/var/log/data-collect/       # supervisor 收集的程序日志
-/etc/supervisor/conf.d/data-collect.conf
+pkg-x86/                    # 或 pkg-arm64
+  data-collect              # 二进制（已内嵌前端页面）
+  config/server.yaml        # 端口 / 数据目录
+  config/device.yaml        # 串口 / 本地 IO 端点
+  README.md
 ```
 
-> 当前已部署环境（Parallels Ubuntu 26.04 ARM64 虚拟机）：
-> `http://10.211.55.6:8091`，supervisor 程序名 `data-collect`，
-> 程序目录 `/opt/data-collect`，日志 `/var/log/data-collect/data-collect.out.log`。
-> 更新发布：宿主机执行 `./deploy/deploy-to-vm.sh`（自动构建 arm64 包并升级部署，保留现场配置与数据）。
-
-在目标机器上安装（需要 root 与已安装的 supervisor）：
+直接运行：
 
 ```bash
-tar -xzf data-collect-x86.tar.gz     # 按机器架构选择 x86 / arm64
+tar -xzf data-collect-x86.tar.gz   # 按机器架构选择 x86 / arm64
 cd pkg-x86
-sudo ./install.sh                    # 安装到 /opt/data-collect 并注册自启动
-supervisorctl status data-collect    # 查看状态
+./data-collect                     # 前台运行（默认 http://<主机>:8090）
+
+# 或后台运行
+nohup ./data-collect >> data-collect.log 2>&1 &
 ```
 
-日常运维：
+用 systemd 托管（示例；假设程序安装在 `/opt/data-collect`，按需调整）：
+
+```ini
+# /etc/systemd/system/data-collect.service
+[Unit]
+Description=Data Collection System
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/data-collect
+ExecStart=/opt/data-collect/data-collect
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ```bash
-supervisorctl restart data-collect   # 重启
-supervisorctl stop data-collect      # 停止
-tail -f /var/log/data-collect/data-collect.out.log
+sudo systemctl daemon-reload
+sudo systemctl enable --now data-collect
+systemctl status data-collect
 ```
 
 说明：
-- `install.sh` 不会覆盖已存在的 `config/`（升级只替换二进制，保留现场配置与 data/）；
-- 若 supervisor 配置目录为 `/etc/supervisord.d`（RHEL 系），脚本会自动识别；
-- 卸载：`supervisorctl stop data-collect && rm /etc/supervisor/conf.d/data-collect.conf && supervisorctl reread && supervisorctl update`。
+
+- 运行数据（SQLite 库、上传文件）默认落在 `<安装目录>/data/`，首次启动自动创建；
+- 升级只替换二进制，`config/` 与 `data/` 原样保留；
+- 从零开始：停止进程后删除 `data/` 目录，重新启动会自动建库并写入内置模板；
+- 日志：程序输出到 stdout/stderr，由部署环境收集（systemd journal / 重定向到文件 / 容器日志）。
 
 ## 数据存储
 

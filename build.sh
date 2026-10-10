@@ -99,7 +99,7 @@ case "${1:-all}" in
     build linux amd64 data-collect-x86
     build linux arm64 data-collect-arm64
 
-    # 打发布包：二进制 + 配置 + supervisor 安装脚本
+    # 打发布包：二进制 + 配置 + README
     for item in "x86:data-collect-x86" "arm64:data-collect-arm64"; do
       arch="${item%%:*}"
       binname="${item##*:}"
@@ -109,8 +109,7 @@ case "${1:-all}" in
       cp "${OUTPUT_DIR}/${binname}" "${pkgdir}/data-collect"
       cp "${SCRIPT_DIR}/config/server.yaml" "${pkgdir}/config/server.yaml"
       cp "${SCRIPT_DIR}/config/device.yaml" "${pkgdir}/config/device.yaml"
-      cp "${SCRIPT_DIR}/deploy/install.sh" "${pkgdir}/install.sh"
-      cp "${SCRIPT_DIR}/deploy/supervisor/data-collect.conf" "${pkgdir}/data-collect.conf"
+      cp "${SCRIPT_DIR}/README.md" "${pkgdir}/README.md"
       tar -C "${OUTPUT_DIR}" -czf "${OUTPUT_DIR}/data-collect-${arch}.tar.gz" "pkg-${arch}"
       rm -rf "${pkgdir}"
       echo "==> 发布包: build/data-collect-${arch}.tar.gz"
