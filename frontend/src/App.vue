@@ -25,6 +25,9 @@
         <el-tab-pane label="采集数据" name="data">
           <DataView />
         </el-tab-pane>
+        <el-tab-pane label="三方接口" name="subsystem">
+          <SubsystemApiView />
+        </el-tab-pane>
       </el-tabs>
     </main>
   </div>
@@ -36,6 +39,7 @@ import { api } from './api'
 import TemplateView from './views/TemplateView.vue'
 import DeviceView from './views/DeviceView.vue'
 import DataView from './views/DataView.vue'
+import SubsystemApiView from './views/SubsystemApiView.vue'
 
 const activeTab = ref('templates')
 const healthOk = ref(false)
