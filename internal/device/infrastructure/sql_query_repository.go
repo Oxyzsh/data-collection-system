@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"database/sql"
+	"strconv"
 	"strings"
 
 	"data-collection-system/internal/device/application"
@@ -107,25 +108,36 @@ func (r *SQLQueryRepository) GetDeviceParams(deviceID int) ([]application.ParamE
 
 // GetDeviceHistory 从历史库读取点位历史。
 // 数据库存储时把 text/number/bool 拆成了不同列或标记，这里要重新还原成统一的 HistoryPoint。
-func (r *SQLQueryRepository) GetDeviceHistory(deviceID int, pointID, limit string) ([]application.HistoryPoint, error) {
-	var query string
-	var args []interface{}
-
-	if pointID != "" {
-		query = `
-			SELECT collected_at, value_type, value_num, value_text, data_type
-			FROM device_data
-			WHERE device_id = ? AND point_id = ?
-			ORDER BY collected_at DESC LIMIT ?`
-		args = []interface{}{deviceID, pointID, limit}
-	} else {
-		query = `
-			SELECT collected_at, value_type, value_num, value_text, data_type
-			FROM device_data
-			WHERE device_id = ?
-			ORDER BY collected_at DESC LIMIT ?`
-		args = []interface{}{deviceID, limit}
+func (r *SQLQueryRepository) GetDeviceHistory(deviceID int, pointID, limit, start, end string) ([]application.HistoryPoint, error) {
+	// limit 归一化：默认 100、上限 5000，避免一次查询拉取过多数据。
+	if n, err := strconv.Atoi(strings.TrimSpace(limit)); err != nil || n <= 0 {
+		limit = "100"
+	} else if n > 5000 {
+		limit = "5000"
 	}
+
+	// 过滤条件全部可选：按测点、按时间范围（collected_at 为 "2006-01-02 15:04:05" 本地时间字符串）。
+	conds := []string{"device_id = ?"}
+	args := []interface{}{deviceID}
+	if strings.TrimSpace(pointID) != "" {
+		conds = append(conds, "point_id = ?")
+		args = append(args, pointID)
+	}
+	if s := strings.TrimSpace(start); s != "" {
+		conds = append(conds, "collected_at >= ?")
+		args = append(args, s)
+	}
+	if e := strings.TrimSpace(end); e != "" {
+		conds = append(conds, "collected_at <= ?")
+		args = append(args, e)
+	}
+
+	query := `
+		SELECT collected_at, value_type, value_num, value_text, data_type
+		FROM device_data
+		WHERE ` + strings.Join(conds, " AND ") + `
+		ORDER BY collected_at DESC LIMIT ?`
+	args = append(args, limit)
 
 	rows, err := r.historyDB.Query(query, args...)
 	if err != nil {

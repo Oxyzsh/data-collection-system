@@ -948,9 +948,12 @@ func GetDeviceHistory(c *gin.Context) {
 		return
 	}
 	pointID := c.Query("point_id")
-	limit := c.DefaultQuery("limit", "60")
+	limit := c.DefaultQuery("limit", "100")
+	// 可选时间范围，格式 "2006-01-02 15:04:05"（与库内 collected_at 一致）。
+	start := c.Query("start")
+	end := c.Query("end")
 	service := devicemodule.GetQueryService()
-	history, err := service.GetDeviceHistory(deviceID, pointID, limit)
+	history, err := service.GetDeviceHistory(deviceID, pointID, limit, start, end)
 	if err != nil {
 		response.API(c, 500, 500, nil, "获取历史数据失败")
 		return

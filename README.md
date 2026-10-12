@@ -20,7 +20,7 @@
 | 运行态数据 | 最新值（数值/文本/布尔）与设备在线状态，落 `runtime.db` |
 | 历史数据 | 采集值内存缓冲 + 整点错峰批量落 `history.db`，并维护当日极值 |
 | 数据查询 | 设备测点实时值接口、设备历史数据接口、selector 批量取值接口 |
-| Web 页面 | 独立前端（Vue3 + Vite + Element Plus）：设备模板导入/查看、按模板添加设备、启用开关（启停采集）、测点实时值（自动刷新）与历史数据 |
+| Web 页面 | 独立前端（Vue3 + Vite + Element Plus）：设备模板导入/查看、按模板添加设备、启用开关（启停采集）、测点实时值、**采集数据查询页**（按设备/测点/时间范围看历史数据与趋势图，支持导出 CSV） |
 
 ### 功能边界（不包含）
 
@@ -65,7 +65,7 @@
 | 模板 | `GET /api/devices/templates`、`GET /api/devices/template-types`、`GET /api/devices/templates/:id`、`GET /api/devices/templates/:id/detail`、`POST /api/devices/templates/import/preview`、`POST /api/devices/templates/import/confirm`、`POST /api/devices/templates/:id/replace`、`POST /api/devices/templates/:id/review`、`DELETE /api/devices/templates/:id` |
 | 设备 | `GET/POST /api/devices`、`GET/PUT/DELETE /api/devices/:id`、`POST /api/devices/:id/start`、`POST /api/devices/:id/stop`、`POST /api/devices/:id/copy`、`PUT /api/devices/:id/enabled` |
 | 测点 | `GET /api/devices/:id/points`、`PUT /api/devices/:id/points/:point_id/config`、`DELETE /api/devices/:id/points/:point_id/config`、`POST /api/devices/:id/points/:point_id/write` |
-| 历史 / 参数 | `GET /api/devices/:id/history`、`GET/PUT /api/devices/:id/params` |
+| 历史 / 参数 | `GET /api/devices/:id/history?point_id=&limit=&start=&end=`（start/end 为可选时间范围，格式 `2006-01-02 15:04:05`；limit 默认 100、上限 5000）、`GET/PUT /api/devices/:id/params` |
 | 协议 | `GET /api/devices/protocols/types`、`GET /api/devices/protocols/params` |
 | selector | `GET /api/devices/:id/selector-points`、`POST /api/devices/selector-values` |
 
@@ -142,6 +142,7 @@ data/                    运行时数据目录（git 忽略，首次启动自动
 |------|------|
 | 设备模板 | 模板列表/查看（测点、告警、引用设备）；xlsx 导入（上传 → 解析预览 → 确认入库）；删除非内置模板 |
 | 设备管理 | 设备列表（运行状态/启用状态）；**添加设备**（选模板 → 协议/端点/参数 → 提交）；启用开关（启用即开始采集并持久化，重启自动恢复）；测点实时值（3s 自动刷新）；测点历史数据 |
+| 采集数据 | 选择设备 → 查看各测点当前值；点击测点查看**历史采集数据**：时间范围（最近 1 小时 / 24 小时 / 今天 / 自定义）、条数上限、趋势图、明细表格、导出 CSV |
 
 开发模式（前后端分离调试）：
 

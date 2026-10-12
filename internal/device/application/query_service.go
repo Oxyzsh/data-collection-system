@@ -38,9 +38,9 @@ type ParamEntry struct {
 }
 
 type HistoryPoint struct {
-	Timestamp string
-	Value     interface{}
-	ValueKind string
+	Timestamp string      `json:"timestamp"`
+	Value     interface{} `json:"value"`
+	ValueKind string      `json:"value_kind"`
 }
 
 type DeviceQueryRepository interface {
@@ -49,7 +49,7 @@ type DeviceQueryRepository interface {
 	ListDevicesWithTemplate() ([]DeviceListItem, error)
 	GetDeviceDetail(deviceID int) (DeviceDetail, error)
 	GetDeviceParams(deviceID int) ([]ParamEntry, error)
-	GetDeviceHistory(deviceID int, pointID, limit string) ([]HistoryPoint, error)
+	GetDeviceHistory(deviceID int, pointID, limit, start, end string) ([]HistoryPoint, error)
 }
 
 type QueryService struct {
@@ -93,6 +93,7 @@ func (s *QueryService) GetDeviceParams(deviceID int) ([]ParamEntry, error) {
 
 // GetDeviceHistory 直接把历史查询下放给 repository。
 // 这是因为这里暂时不需要额外业务编排，service 只保留统一边界。
-func (s *QueryService) GetDeviceHistory(deviceID int, pointID, limit string) ([]HistoryPoint, error) {
-	return s.repo.GetDeviceHistory(deviceID, pointID, limit)
+// start/end 为可选时间范围（本地时间 "2006-01-02 15:04:05"），空串表示不限。
+func (s *QueryService) GetDeviceHistory(deviceID int, pointID, limit, start, end string) ([]HistoryPoint, error) {
+	return s.repo.GetDeviceHistory(deviceID, pointID, limit, start, end)
 }

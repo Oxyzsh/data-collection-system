@@ -22,6 +22,9 @@
         <el-tab-pane label="设备管理" name="devices">
           <DeviceView />
         </el-tab-pane>
+        <el-tab-pane label="采集数据" name="data">
+          <DataView />
+        </el-tab-pane>
       </el-tabs>
     </main>
   </div>
@@ -32,6 +35,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from './api'
 import TemplateView from './views/TemplateView.vue'
 import DeviceView from './views/DeviceView.vue'
+import DataView from './views/DataView.vue'
 
 const activeTab = ref('templates')
 const healthOk = ref(false)
