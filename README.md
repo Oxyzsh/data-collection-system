@@ -133,6 +133,7 @@ internal/shared          日志、i18n、错误、版本号
 config/                  server.yaml / device.yaml
 examples/templates/      示例模板（Modbus 温湿度、SNMP 主机）
 scripts/e2e_smoke.sh     端到端冒烟脚本
+scripts/dev-restart.sh   本地开发：构建 + 重启本地服务 + 健康检查
 data/                    运行时数据目录（git 忽略，首次启动自动创建）
 ```
 
@@ -174,12 +175,18 @@ curl -X POST http://localhost:8090/api/set/1.3 -H 'Content-Type: application/jso
 开发模式（前后端分离调试）：
 
 ```bash
+# 方式一：改完代码一键「构建 + 重启本地服务 + 健康检查」
+./scripts/dev-restart.sh
+
+# 方式二：分开跑
 # 终端 1：启动后端
 ./build/data-collect
 
 # 终端 2：启动前端 dev server（3100 端口，/api 代理到 8090）
 cd frontend && npm install && npm run dev
 ```
+
+> 提示：后端服务运行的是编译进二进制的代码，**改完代码必须重新构建并重启**（`./scripts/dev-restart.sh` 已封装该流程）。
 
 生产模式：`./build.sh` 会自动执行 `npm run build`，把产物复制到 `cmd/server/dist/` 并通过
 `//go:embed` 打进二进制 —— 部署时只需一个可执行文件，页面路径与接口同源。
