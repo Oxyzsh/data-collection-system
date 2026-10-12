@@ -1,22 +1,7 @@
 <template>
   <div class="panel">
-    <!-- 查询条件 -->
+    <!-- 查询条件（设备选择移到左侧列表） -->
     <div class="toolbar">
-      <el-select
-        v-model="deviceId"
-        placeholder="选择设备"
-        filterable
-        style="width: 260px"
-        @change="onDeviceChange"
-      >
-        <el-option
-          v-for="d in devices"
-          :key="d.id"
-          :label="`${d.name}（${d.template_name}）`"
-          :value="d.id"
-        />
-      </el-select>
-
       <el-select v-model="rangePreset" style="width: 140px" @change="onPresetChange">
         <el-option label="最近 1 小时" value="1h" />
         <el-option label="最近 24 小时" value="24h" />
@@ -30,7 +15,6 @@
         value-format="YYYY-MM-DD HH:mm:ss"
         start-placeholder="开始时间"
         end-placeholder="结束时间"
-        :disabled-date="() => false"
         style="width: 360px"
       />
 
@@ -43,105 +27,153 @@
 
       <div class="spacer"></div>
       <el-checkbox v-model="autoRefresh">自动刷新当前值（5s）</el-checkbox>
-      <el-button :icon="Refresh" :loading="pointsLoading" @click="loadPoints">刷新</el-button>
+      <el-button :icon="Refresh" :loading="pointsLoading" @click="refreshAll">刷新</el-button>
     </div>
 
-    <el-empty v-if="!deviceId" description="请先选择设备" />
-
-    <el-row v-else :gutter="16">
-      <!-- 左：测点当前值 -->
-      <el-col :xs="24" :md="10">
+    <el-row :gutter="16">
+      <!-- 左：设备列表（数量多时便于搜索与查看状态） -->
+      <el-col :xs="24" :md="7">
         <el-card shadow="never" class="sub-card">
           <template #header>
             <div class="card-header">
-              <span>测点（当前值）</span>
-              <el-tag size="small" :type="running ? 'success' : 'info'" effect="plain">
-                {{ running ? '采集运行中' : '采集未运行' }}
-              </el-tag>
+              <span>设备</span>
+              <el-tag size="small" effect="plain">共 {{ filteredDevices.length }} 台</el-tag>
             </div>
           </template>
-          <el-table
-            :data="points"
-            v-loading="pointsLoading"
+          <el-input
+            v-model="deviceKeyword"
+            placeholder="搜索设备名称 / 模板"
+            clearable
             size="small"
-            border
-            highlight-current-row
-            :current-row-key="selectedPoint?.point_id"
-            row-key="point_id"
-            max-height="560"
-            @current-change="onPointSelect"
+            style="margin-bottom: 8px"
           >
-            <el-table-column prop="point_id" label="ID" width="56" />
-            <el-table-column prop="name" label="测点名称" min-width="120" show-overflow-tooltip />
-            <el-table-column label="当前值" min-width="110">
+            <template #prefix><el-icon><Search /></el-icon></template>
+          </el-input>
+          <el-checkbox v-model="onlyRunning" size="small" style="margin-bottom: 8px">仅显示运行中</el-checkbox>
+
+          <el-table
+            :data="filteredDevices"
+            v-loading="devicesLoading"
+            size="small"
+            highlight-current-row
+            :current-row-key="deviceId"
+            row-key="id"
+            max-height="620"
+            @current-change="onDeviceSelect"
+          >
+            <el-table-column prop="name" label="设备名称" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="template_name" label="模板" min-width="110" show-overflow-tooltip />
+            <el-table-column label="状态" width="88">
               <template #default="{ row }">
-                <span>{{ formatValue(row.value) }}</span>
-                <span v-if="row.unit" class="text-muted" style="margin-left: 4px">{{ row.unit }}</span>
+                <el-tag size="small" :type="row.status === 'running' ? 'success' : 'info'" effect="plain">
+                  {{ row.status === 'running' ? '运行中' : '已停止' }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="data_type" label="类型" width="86" />
-            <el-table-column prop="timestamp" label="更新时间" width="150" />
+            <template #empty>
+              <el-empty description="没有匹配的设备" :image-size="60" />
+            </template>
           </el-table>
         </el-card>
       </el-col>
 
-      <!-- 右：历史数据 -->
-      <el-col :xs="24" :md="14">
-        <el-card shadow="never" class="sub-card">
-          <template #header>
-            <div class="card-header">
-              <span>
-                历史数据
-                <template v-if="selectedPoint">
-                  · {{ selectedPoint.name }}（测点 {{ selectedPoint.point_id }}）
-                </template>
-              </span>
-              <div>
-                <el-tag v-if="history.length" size="small" effect="plain">共 {{ history.length }} 条</el-tag>
-                <el-button
-                  size="small"
-                  :disabled="!history.length"
-                  style="margin-left: 8px"
-                  @click="exportCSV"
-                >
-                  导出 CSV
-                </el-button>
+      <!-- 右：测点当前值 + 历史数据 -->
+      <el-col :xs="24" :md="17">
+        <el-empty v-if="!deviceId" description="请在左侧选择设备" />
+
+        <template v-else>
+          <el-card shadow="never" class="sub-card">
+            <template #header>
+              <div class="card-header">
+                <span>
+                  测点（当前值）
+                  <span class="text-muted" style="margin-left: 6px">{{ currentDeviceName }}</span>
+                </span>
+                <el-tag size="small" :type="running ? 'success' : 'info'" effect="plain">
+                  {{ running ? '采集运行中' : '采集未运行' }}
+                </el-tag>
               </div>
-            </div>
-          </template>
+            </template>
+            <el-table
+              :data="points"
+              v-loading="pointsLoading"
+              size="small"
+              border
+              highlight-current-row
+              :current-row-key="selectedPoint?.point_id"
+              row-key="point_id"
+              max-height="320"
+              @current-change="onPointSelect"
+            >
+              <el-table-column prop="point_id" label="ID" width="56" />
+              <el-table-column prop="name" label="测点名称" min-width="120" show-overflow-tooltip />
+              <el-table-column label="当前值" min-width="120">
+                <template #default="{ row }">
+                  <span>{{ formatValue(row.value) }}</span>
+                  <span v-if="row.unit" class="text-muted" style="margin-left: 4px">{{ row.unit }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="data_type" label="类型" width="86" />
+              <el-table-column prop="access" label="读写" width="66" />
+              <el-table-column prop="timestamp" label="更新时间" width="150" />
+            </el-table>
+          </el-card>
 
-          <el-empty v-if="!selectedPoint" description="点击左侧测点查看历史数据" />
-
-          <template v-else>
-            <div v-loading="historyLoading">
-              <!-- 简易趋势图（数值/布尔类型） -->
-              <div v-if="chart" class="chart-wrap">
-                <svg :viewBox="`0 0 ${chart.width} ${chart.height}`" preserveAspectRatio="none">
-                  <polyline :points="chart.polyline" fill="none" stroke="#2a6bb5" stroke-width="1.5" />
-                  <text x="4" :y="18" class="chart-label">{{ chart.max }}</text>
-                  <text x="4" :y="chart.height - 6" class="chart-label">{{ chart.min }}</text>
-                </svg>
-                <div class="chart-axis">
-                  <span>{{ displayTime(history[0]?.timestamp) }}</span>
-                  <span>{{ displayTime(history[history.length - 1]?.timestamp) }}</span>
+          <el-card shadow="never" class="sub-card">
+            <template #header>
+              <div class="card-header">
+                <span>
+                  历史数据
+                  <template v-if="selectedPoint">
+                    · {{ selectedPoint.name }}（测点 {{ selectedPoint.point_id }}）
+                  </template>
+                </span>
+                <div>
+                  <el-tag v-if="history.length" size="small" effect="plain">共 {{ history.length }} 条</el-tag>
+                  <el-button
+                    size="small"
+                    :disabled="!history.length"
+                    style="margin-left: 8px"
+                    @click="exportCSV"
+                  >
+                    导出 CSV
+                  </el-button>
                 </div>
               </div>
+            </template>
 
-              <el-table :data="historyDesc" size="small" border max-height="430">
-                <el-table-column label="采集时间" width="180">
-                  <template #default="{ row }">{{ displayTime(row.timestamp) }}</template>
-                </el-table-column>
-                <el-table-column label="数值" min-width="120">
-                  <template #default="{ row }">{{ formatValue(row.value) }}</template>
-                </el-table-column>
-                <el-table-column prop="value_kind" label="类型" width="90" />
-                <template #empty>
-                  <el-empty description="暂无历史数据（历史按整点错峰落盘，未到落盘窗口时为空）" />
-                </template>
-              </el-table>
-            </div>
-          </template>
-        </el-card>
+            <el-empty v-if="!selectedPoint" description="点击上方测点查看历史数据" />
+
+            <template v-else>
+              <div v-loading="historyLoading">
+                <div v-if="chart" class="chart-wrap">
+                  <svg :viewBox="`0 0 ${chart.width} ${chart.height}`" preserveAspectRatio="none">
+                    <polyline :points="chart.polyline" fill="none" stroke="#2a6bb5" stroke-width="1.5" />
+                    <text x="4" :y="18" class="chart-label">{{ chart.max }}</text>
+                    <text x="4" :y="chart.height - 6" class="chart-label">{{ chart.min }}</text>
+                  </svg>
+                  <div class="chart-axis">
+                    <span>{{ displayTime(history[0]?.timestamp) }}</span>
+                    <span>{{ displayTime(history[history.length - 1]?.timestamp) }}</span>
+                  </div>
+                </div>
+
+                <el-table :data="historyDesc" size="small" border max-height="360">
+                  <el-table-column label="采集时间" width="180">
+                    <template #default="{ row }">{{ displayTime(row.timestamp) }}</template>
+                  </el-table-column>
+                  <el-table-column label="数值" min-width="120">
+                    <template #default="{ row }">{{ formatValue(row.value) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="value_kind" label="类型" width="90" />
+                  <template #empty>
+                    <el-empty description="暂无历史数据（历史按整点错峰落盘，未到落盘窗口时为空）" />
+                  </template>
+                </el-table>
+              </div>
+            </template>
+          </el-card>
+        </template>
       </el-col>
     </el-row>
   </div>
@@ -150,11 +182,32 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Search } from '@element-plus/icons-vue'
 import { api } from '../api'
 
 const devices = ref([])
+const devicesLoading = ref(false)
 const deviceId = ref(null)
+const deviceKeyword = ref('')
+const onlyRunning = ref(false)
+
+// 设备列表筛选：按名称/模板搜索，可选仅看运行中
+const filteredDevices = computed(() => {
+  const kw = deviceKeyword.value.trim().toLowerCase()
+  return devices.value.filter((d) => {
+    if (onlyRunning.value && d.status !== 'running') return false
+    if (!kw) return true
+    return (
+      String(d.name || '').toLowerCase().includes(kw) ||
+      String(d.template_name || '').toLowerCase().includes(kw)
+    )
+  })
+})
+
+const currentDeviceName = computed(() => {
+  const d = devices.value.find((x) => x.id === deviceId.value)
+  return d ? d.name : ''
+})
 const rangePreset = ref('24h')
 const range = ref([])
 const limit = ref(500)
@@ -215,6 +268,7 @@ function formatValue(value) {
 }
 
 async function loadDevices() {
+  devicesLoading.value = true
   try {
     const res = await api.devices()
     devices.value = res?.data || []
@@ -224,7 +278,22 @@ async function loadDevices() {
     }
   } catch {
     /* 拦截器已提示 */
+  } finally {
+    devicesLoading.value = false
   }
+}
+
+// 点击左侧设备列表选中设备
+function onDeviceSelect(row) {
+  if (!row) return
+  if (row.id === deviceId.value) return
+  deviceId.value = row.id
+  onDeviceChange()
+}
+
+function refreshAll() {
+  loadDevices()
+  if (deviceId.value) loadPoints()
 }
 
 async function loadPoints() {
