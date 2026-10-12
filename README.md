@@ -20,6 +20,7 @@
 | 运行态数据 | 最新值（数值/文本/布尔）与设备在线状态，落 `runtime.db` |
 | 历史数据 | 采集值内存缓冲 + 整点错峰批量落 `history.db`，并维护当日极值 |
 | 数据查询 | 设备测点实时值接口、设备历史数据接口、selector 批量取值接口 |
+| 三方子系统接口 | 按 [三方协议对接指南](docs/THIRD_PARTY_PROTOCOL_GUIDE.md) **对外提供** 4 个接口：健康检查、设备树、测点实时值、测点写值 |
 | Web 页面 | 独立前端（Vue3 + Vite + Element Plus）：设备模板导入/查看、按模板添加设备、启用开关（启停采集）、测点实时值、**采集数据查询页**（按设备/测点/时间范围看历史数据与趋势图，支持导出 CSV） |
 
 ### 功能边界（不包含）
@@ -127,11 +128,37 @@ internal/runtime         运行态：最新值（数值/文本/布尔）、设�
 internal/history         采集历史：内存缓冲 + 整点错峰批量落盘 + 当日极值
 internal/devicecatalog   device.yaml → 设备接入目录（device_ref 解析）
 internal/bootstrap       启动配置与运行目录
+internal/subsystem       对外提供三方子系统接口（health / deviceTree / realtime / set）
 internal/shared          日志、i18n、错误、版本号
 config/                  server.yaml / device.yaml
 examples/templates/      示例模板（Modbus 温湿度、SNMP 主机）
 scripts/e2e_smoke.sh     端到端冒烟脚本
 data/                    运行时数据目录（git 忽略，首次启动自动创建）
+```
+
+## 对外接口：三方子系统协议
+
+本系统按 [docs/THIRD_PARTY_PROTOCOL_GUIDE.md](docs/THIRD_PARTY_PROTOCOL_GUIDE.md) **对外提供**以下接口，
+供外部 Sub-System 拉取设备与采集数据、下发控制命令：
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/health` | GET | 健康检查（`{"code":0,"message":"success"}`） |
+| `/protocol/sub/system/api/v1/converter/deviceTree` | GET | 设备树：每个设备一个根节点，其测点（含内置在线状态点 `0`）为叶子节点 |
+| `/protocol/sub/system/api/v1/converter/realtime?pointStr=` | GET | 测点实时值（`data.pointId / timestamp(ms) / value`） |
+| `/api/set/{pointStr}` | POST | 设置测点值（body `{"pointId":"...","value":...}`），仅 `rw`/`w` 测点可写 |
+
+**pointStr 约定**：`<deviceId>.<pointId>`（如 `1.2` 表示设备 1 的 2 号测点）。外部系统可直接使用设备树返回的
+`pointId`；`point_id = 0` 是采集器维护的「设备在线状态」点。
+
+**错误码**：`0` 成功；`400` 参数错误、`404` 测点不存在、`503` 暂无实时数据（设备未运行或尚未采集）。
+
+```bash
+curl http://localhost:8090/health
+curl http://localhost:8090/protocol/sub/system/api/v1/converter/deviceTree
+curl "http://localhost:8090/protocol/sub/system/api/v1/converter/realtime?pointStr=1.1"
+curl -X POST http://localhost:8090/api/set/1.3 -H 'Content-Type: application/json' \
+     -d '{"pointId":"1.3","value":28}'
 ```
 
 ## 前端页面（frontend/）
